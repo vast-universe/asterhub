@@ -1,0 +1,9 @@
+{
+  "templates": {
+    "next": {
+      "path": "./next",
+      "displayName": "Next.js",
+      "description": "Next.js 16 + Tailwind CSS 4"
+    }
+  }
+}

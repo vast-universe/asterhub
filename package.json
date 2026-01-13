@@ -1,0 +1,14 @@
+{
+  "name": "asterhub",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter docs dev",
+    "build": "pnpm --filter docs build",
+    "build:cli": "pnpm --filter asterhub build",
+    "release": "pnpm build:cli && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "typescript": "^5.3.0"
+  }
+}

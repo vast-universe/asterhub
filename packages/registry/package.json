@@ -1,0 +1,14 @@
+{
+  "name": "@asterhub/registry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AsterHub 官方组件库",
+  "type": "module",
+  "scripts": {
+    "build": "tsx scripts/build.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

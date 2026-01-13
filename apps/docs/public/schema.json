@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AsterHub Configuration",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "framework": {
+      "type": "string",
+      "enum": ["next", "expo", "nuxt"],
+      "default": "next",
+      "description": "项目框架"
+    },
+    "style": {
+      "type": "string",
+      "enum": ["tailwind", "nativewind"],
+      "default": "tailwind",
+      "description": "样式方案"
+    },
+    "aliases": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "string",
+          "default": "@/components",
+          "description": "组件目录别名"
+        },
+        "hooks": {
+          "type": "string",
+          "default": "@/hooks",
+          "description": "Hooks 目录别名"
+        },
+        "lib": {
+          "type": "string",
+          "default": "@/lib",
+          "description": "工具函数目录别名"
+        }
+      }
+    },
+    "installed": {
+      "type": "object",
+      "properties": {
+        "ui": {
+          "type": "object",
+          "description": "已安装的 UI 组件"
+        },
+        "hook": {
+          "type": "object",
+          "description": "已安装的 Hooks"
+        },
+        "lib": {
+          "type": "object",
+          "description": "已安装的工具库"
+        },
+        "config": {
+          "type": "object",
+          "description": "已安装的配置"
+        }
+      }
+    }
+  },
+  "required": ["framework", "style", "aliases", "installed"]
+}

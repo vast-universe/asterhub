@@ -1,0 +1,19 @@
+{
+  "name": "next",
+  "displayName": "Next.js",
+  "description": "Next.js 16 + Tailwind CSS 4 项目模板",
+  "framework": "next",
+  "version": "1.0.0",
+  "variables": {
+    "name": {
+      "description": "项目名称",
+      "required": true
+    }
+  },
+  "ignore": [
+    "node_modules",
+    ".next",
+    "package-lock.json",
+    "template.json"
+  ]
+}
