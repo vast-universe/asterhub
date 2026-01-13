@@ -2,8 +2,8 @@
  * 配置管理 - asterhub.json 操作
  */
 import { CONFIG_FILE, DEFAULT_FRAMEWORK, DEFAULT_STYLE } from "../constants";
+import { readJson, writeJson, exists, join } from "./fs";
 import type { AsterHubConfig, InstalledResource, ResourceType } from "../types";
-import { exists, join, readJson, writeJson } from "./fs";
 
 /**
  * 默认配置
@@ -102,7 +102,9 @@ export async function markRemoved(type: ResourceType, name: string, cwd?: string
 /**
  * 获取已安装的资源列表
  */
-export async function getInstalledResources(cwd?: string): Promise<
+export async function getInstalledResources(
+  cwd?: string
+): Promise<
   Array<{
     type: ResourceType;
     name: string;

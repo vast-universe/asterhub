@@ -1,42 +1,59 @@
 /**
- * 认证服务
+ * 认证服务 - 用户认证 API
  */
-import { del, get, post } from "../lib/http";
-import type { UserInfo } from "../types";
-
-// Token 信息
-interface Token {
-  id: string;
-  name: string;
-  scopes: string[];
-  createdAt: string;
-  lastUsedAt?: string;
-}
+import { get, post } from "../lib/http";
+import type { UserInfo, NamespaceInfo } from "../types";
 
 /**
  * 获取当前用户信息
  */
-export async function getCurrentUser(): Promise<UserInfo> {
-  return get<UserInfo>("/api/user");
+export async function fetchCurrentUser(): Promise<UserInfo> {
+  return get<UserInfo>("/api/auth/me", { auth: true });
 }
 
 /**
- * 获取 Token 列表
+ * 验证 Token
  */
-export async function getTokens(): Promise<Token[]> {
-  return get<Token[]>("/api/tokens");
+export async function verifyToken(token: string): Promise<UserInfo> {
+  return get<UserInfo>("/api/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 /**
- * 创建 Token
+ * 获取用户的命名空间列表
  */
-export async function createToken(name: string, scopes: string[]): Promise<{ token: string; id: string }> {
-  return post<{ token: string; id: string }>("/api/tokens", { name, scopes });
+export async function fetchNamespaces(): Promise<NamespaceInfo[]> {
+  const result = await get<{ namespaces: NamespaceInfo[] }>("/api/auth/namespaces", { auth: true });
+  return result.namespaces || [];
 }
 
 /**
- * 撤销 Token
+ * 创建命名空间
  */
-export async function revokeToken(id: string): Promise<void> {
-  await del(`/api/tokens/${id}`);
+export async function createNamespace(
+  name: string,
+  options?: { displayName?: string; description?: string }
+): Promise<NamespaceInfo> {
+  return post<NamespaceInfo>("/api/auth/namespaces", { name, ...options }, { auth: true });
+}
+
+/**
+ * 删除命名空间
+ */
+export async function deleteNamespace(name: string): Promise<void> {
+  const { del } = await import("../lib/http");
+  await del(`/api/auth/namespaces/${name}`, { auth: true });
+}
+
+/**
+ * 检查命名空间是否可用
+ */
+export async function checkNamespaceAvailable(name: string): Promise<boolean> {
+  try {
+    const result = await get<{ available: boolean }>(`/api/namespaces/check/${name}`);
+    return result.available;
+  } catch {
+    return false;
+  }
 }

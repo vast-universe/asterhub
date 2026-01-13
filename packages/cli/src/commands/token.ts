@@ -1,97 +1,126 @@
 /**
- * Token 管理命令
+ * token 命令 - 管理 API Token
  */
-import prompts from "prompts";
 import ora from "ora";
-import { logger, isAuthenticated } from "../lib";
-import { getTokens, createToken, revokeToken } from "../services/auth";
+import prompts from "prompts";
+import { logger, getToken } from "../lib";
+import { get, post, del } from "../lib/http";
+import type { TokenInfo } from "../types";
 
 /**
  * 列出所有 Token
  */
 export async function tokenList(): Promise<void> {
-  if (!(await isAuthenticated())) {
-    logger.error("请先登录");
+  const spinner = ora();
+
+  const token = await getToken();
+  if (!token) {
+    logger.error("请先登录: npx asterhub login");
     return;
   }
 
-  const spinner = ora("正在获取 Token 列表...").start();
+  logger.header("🔑", "我的 Token");
+
+  spinner.start("获取 Token 列表...");
 
   try {
-    const tokens = await getTokens();
+    const { tokens } = await get<{ tokens: TokenInfo[] }>("/api/auth/tokens", { auth: true });
     spinner.stop();
 
-    if (tokens.length === 0) {
-      logger.info("没有 Token");
+    if (!tokens || tokens.length === 0) {
+      logger.dim("没有 Token");
       return;
     }
 
-    logger.log("\nToken 列表:\n");
-    for (const token of tokens) {
-      logger.log(`  ${token.name} (${token.id})`);
-      logger.log(`    权限: ${token.scopes.join(", ")}`);
-      logger.log(`    创建时间: ${token.createdAt}`);
-      if (token.lastUsedAt) {
-        logger.log(`    最后使用: ${token.lastUsedAt}`);
-      }
-      logger.break();
+    logger.newline();
+    for (const t of tokens) {
+      const scopes = t.scopes?.join(", ") || "all";
+      const lastUsed = t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : "从未使用";
+      const expires = t.expiresAt ? new Date(t.expiresAt).toLocaleDateString() : "永不过期";
+
+      logger.log(`  ${t.name || "未命名"} (${t.id})`);
+      logger.dim(`    权限: ${scopes}`);
+      logger.dim(`    最后使用: ${lastUsed}`);
+      logger.dim(`    过期时间: ${expires}`);
+      logger.newline();
     }
   } catch (error) {
-    spinner.fail(`获取失败: ${error instanceof Error ? error.message : "未知错误"}`);
+    spinner.fail("获取失败");
+    logger.error((error as Error).message);
   }
 }
 
 /**
- * 创建 Token
+ * 创建新 Token
  */
-export async function tokenCreate(options: { name?: string; scope?: string }): Promise<void> {
-  if (!(await isAuthenticated())) {
-    logger.error("请先登录");
+export async function tokenCreate(options: { name?: string; scope?: string } = {}): Promise<void> {
+  const spinner = ora();
+
+  const token = await getToken();
+  if (!token) {
+    logger.error("请先登录: npx asterhub login");
     return;
   }
 
+  logger.header("🔑", "创建 Token");
+
+  // 获取 Token 名称
   let name = options.name;
-  let scopes = options.scope?.split(",").map((s) => s.trim()) || [];
-
   if (!name) {
-    const answers = await prompts([
-      {
-        type: "text",
-        name: "name",
-        message: "Token 名称",
-        validate: (v) => (v ? true : "请输入名称"),
-      },
-      {
-        type: "multiselect",
-        name: "scopes",
-        message: "选择权限",
-        choices: [
-          { title: "read - 读取资源", value: "read" },
-          { title: "write - 发布资源", value: "write" },
-          { title: "delete - 删除资源", value: "delete" },
-        ],
-        min: 1,
-      },
-    ]);
-
-    if (!answers.name) return;
-    name = answers.name;
-    scopes = answers.scopes;
+    const answer = await prompts({
+      type: "text",
+      name: "name",
+      message: "Token 名称:",
+      initial: "CLI Token",
+    });
+    name = answer.name;
   }
 
-  const spinner = ora("正在创建 Token...").start();
+  if (!name) {
+    logger.dim("已取消");
+    return;
+  }
+
+  // 获取权限范围
+  let scopes = options.scope?.split(",") || [];
+  if (scopes.length === 0) {
+    const answer = await prompts({
+      type: "multiselect",
+      name: "scopes",
+      message: "选择权限:",
+      choices: [
+        { title: "读取 (read)", value: "read", selected: true },
+        { title: "发布 (publish)", value: "publish", selected: true },
+        { title: "删除 (delete)", value: "delete" },
+      ],
+      min: 1,
+    });
+    scopes = answer.scopes || ["read", "publish"];
+  }
+
+  spinner.start("创建 Token...");
 
   try {
-    const result = await createToken(name, scopes);
-    spinner.stop();
+    const result = await post<{ token: string; id: string }>(
+      "/api/auth/tokens",
+      { name, scopes },
+      { auth: true }
+    );
 
-    logger.success("Token 创建成功");
-    logger.break();
-    logger.log(`  Token: ${result.token}`);
-    logger.break();
-    logger.warn("请妥善保存此 Token，它只会显示一次");
+    spinner.succeed("Token 创建成功");
+
+    logger.newline();
+    logger.warn("请保存以下 Token，它只会显示一次:");
+    logger.newline();
+    logger.log(`  ${result.token}`);
+    logger.newline();
+    logger.dim("使用方法:");
+    logger.dim("  export ASTER_TOKEN=<token>");
+    logger.dim("  或在 CI 中设置环境变量");
+    logger.newline();
   } catch (error) {
-    spinner.fail(`创建失败: ${error instanceof Error ? error.message : "未知错误"}`);
+    spinner.fail("创建失败");
+    logger.error((error as Error).message);
   }
 }
 
@@ -99,26 +128,41 @@ export async function tokenCreate(options: { name?: string; scope?: string }): P
  * 撤销 Token
  */
 export async function tokenRevoke(id: string): Promise<void> {
-  if (!(await isAuthenticated())) {
-    logger.error("请先登录");
+  const spinner = ora();
+
+  const token = await getToken();
+  if (!token) {
+    logger.error("请先登录: npx asterhub login");
     return;
   }
 
+  if (!id) {
+    logger.error("请指定 Token ID");
+    logger.dim("用法: npx asterhub token revoke <id>");
+    logger.dim("运行 npx asterhub token list 查看所有 Token");
+    return;
+  }
+
+  // 确认
   const { confirm } = await prompts({
     type: "confirm",
     name: "confirm",
-    message: `确定要撤销 Token ${id} 吗?`,
+    message: `确定撤销 Token ${id}?`,
     initial: false,
   });
 
-  if (!confirm) return;
+  if (!confirm) {
+    logger.dim("已取消");
+    return;
+  }
 
-  const spinner = ora("正在撤销 Token...").start();
+  spinner.start("撤销 Token...");
 
   try {
-    await revokeToken(id);
+    await del(`/api/auth/tokens/${id}`, { auth: true });
     spinner.succeed("Token 已撤销");
   } catch (error) {
-    spinner.fail(`撤销失败: ${error instanceof Error ? error.message : "未知错误"}`);
+    spinner.fail("撤销失败");
+    logger.error((error as Error).message);
   }
 }

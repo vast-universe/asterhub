@@ -1,7 +1,9 @@
 /**
  * 资源相关类型
  */
-import type { ResourceType } from "./common";
+
+// 资源类型
+export type ResourceType = "ui" | "hook" | "lib" | "config";
 
 // 资源引用
 export interface ResourceRef {
@@ -39,31 +41,9 @@ export interface InstalledResource {
   integrity?: string;
 }
 
-// 搜索结果
-export interface SearchResult {
-  namespace: string;
-  name: string;
-  type: ResourceType;
-  description?: string;
-  downloads: number;
-  latestVersion: string;
-}
-
 // 版本信息
 export interface VersionInfo {
   version: string;
   publishedAt: string;
   downloads: number;
-}
-
-// 安全公告
-export interface SecurityAdvisory {
-  namespace: string;
-  name: string;
-  type: ResourceType;
-  severity: "critical" | "high" | "medium" | "low";
-  title: string;
-  description: string;
-  affectedVersions: string;
-  patchedVersion?: string;
 }

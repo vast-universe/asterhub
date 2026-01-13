@@ -1,56 +1,26 @@
 /**
- * Registry 配置类型 (用于 registry.config.ts)
+ * Registry 相关类型
  */
-import type { Framework, Style } from "./common";
+import type { ResourceType } from "./resource";
 
-// Registry 配置
-export interface RegistryConfig {
+// 搜索结果
+export interface SearchResult {
   namespace: string;
+  name: string;
+  type: ResourceType;
   description?: string;
-  frameworks: Framework[];
-  components?: ComponentConfig[];
-  hooks?: HookConfig[];
-  lib?: LibConfig[];
-  configs?: ConfigConfig[];
+  downloads: number;
+  latestVersion: string;
 }
 
-// 组件配置
-export interface ComponentConfig {
+// 安全公告
+export interface SecurityAdvisory {
+  namespace: string;
   name: string;
-  version: string;
-  style: Style;
-  description?: string;
-  files: string[];
-  dependencies?: string[];
-  devDependencies?: string[];
-  registryDependencies?: string[];
-}
-
-// Hook 配置
-export interface HookConfig {
-  name: string;
-  version: string;
-  description?: string;
-  files: string[];
-  dependencies?: string[];
-  devDependencies?: string[];
-  registryDependencies?: string[];
-}
-
-// Lib 配置
-export interface LibConfig {
-  name: string;
-  version: string;
-  description?: string;
-  files: string[];
-  dependencies?: string[];
-  devDependencies?: string[];
-}
-
-// Config 配置
-export interface ConfigConfig {
-  name: string;
-  version: string;
-  description?: string;
-  files: string[];
+  type: ResourceType;
+  severity: "critical" | "high" | "medium" | "low";
+  title: string;
+  description: string;
+  affectedVersions: string;
+  patchedVersion?: string;
 }

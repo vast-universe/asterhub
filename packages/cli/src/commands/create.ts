@@ -1,30 +1,15 @@
 /**
- * create 命令 - 创建新项目
+ * create 命令 - 创建新项目 (仅支持 Next.js)
  */
 import { execSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { Ora } from "ora";
 import ora from "ora";
 import prompts from "prompts";
 import { logger, fs } from "../lib";
+import type { CreateOptions } from "../types";
 
-interface CreateOptions {
-  framework?: string;
-  yes?: boolean;
-}
-
-// 获取本地模板路径
-function getLocalTemplatesPath(): string {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  // cli/dist -> cli -> packages -> templates
-  return path.resolve(__dirname, "../../templates");
-}
-
-export async function create(
-  projectName: string | undefined,
-  options: CreateOptions = {}
-): Promise<void> {
+export async function create(projectName: string | undefined, options: CreateOptions = {}): Promise<void> {
   const spinner = ora();
 
   logger.header("🚀", "AsterHub Create - 创建新项目");
@@ -64,41 +49,12 @@ export async function create(
     await fs.remove(targetDir);
   }
 
-  // 2. 选择框架
-  let framework = options.framework || "next";
-
-  if (!options.yes && !options.framework) {
-    const answer = await prompts({
-      type: "select",
-      name: "framework",
-      message: "选择框架:",
-      choices: [
-        { title: "Next.js", value: "next" },
-        { title: "Expo (即将支持)", value: "expo", disabled: true },
-        { title: "Nuxt (即将支持)", value: "nuxt", disabled: true },
-      ],
-      initial: 0,
-    });
-
-    if (!answer.framework) {
-      logger.warn("已取消");
-      return;
-    }
-
-    framework = answer.framework;
-  }
-
   logger.newline();
 
-  // 3. 创建项目
-  if (framework === "next") {
-    await createNextProject(projectName, targetDir, spinner);
-  } else {
-    logger.error(`框架 ${framework} 暂不支持`);
-    return;
-  }
+  // 2. 创建 Next.js 项目
+  await createNextProject(projectName, targetDir, spinner);
 
-  // 4. 输出结果
+  // 3. 输出结果
   logger.newline();
   logger.success("项目创建成功！");
   logger.newline();
@@ -109,83 +65,66 @@ export async function create(
   logger.newline();
 }
 
-async function copyTemplateFiles(
-  srcDir: string,
-  destDir: string
-): Promise<void> {
-  const files = await fs.listDir(srcDir);
-
-  for (const file of files) {
-    const srcPath = path.join(srcDir, file);
-    const destPath = path.join(destDir, file);
-
-    const fileStat = await fs.stat(srcPath);
-    if (fileStat?.isDirectory()) {
-      await fs.ensureDir(destPath);
-      await copyTemplateFiles(srcPath, destPath);
-    } else {
-      await fs.copy(srcPath, destPath);
-    }
-  }
-}
-
-/**
- * 创建 Next.js 项目
- */
 async function createNextProject(
   projectName: string,
   targetDir: string,
-  spinner: Ora
+  spinner: ReturnType<typeof ora>
 ): Promise<void> {
-  const templatesPath = getLocalTemplatesPath();
-  const nextTemplatePath = path.join(templatesPath, "next");
+  // 1. 查找模板目录
+  spinner.start("查找模板...");
 
-  // 检查本地模板是否存在
-  if (!(await fs.exists(nextTemplatePath))) {
-    logger.error(
-      "Next.js 模板不存在，请确保 packages/templates/next 目录存在"
-    );
+  // 获取 CLI 包的根目录，然后找到 templates/next
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const cliRoot = path.resolve(__dirname, "../..");
+  
+  // 尝试多个可能的模板路径
+  const possiblePaths = [
+    path.resolve(cliRoot, "../templates/next"),           // monorepo: packages/cli -> packages/templates/next
+    path.resolve(cliRoot, "../../packages/templates/next"), // 从 dist 目录
+    path.resolve(process.cwd(), "packages/templates/next"), // 当前工作目录
+  ];
+
+  let templateDir: string | null = null;
+  for (const p of possiblePaths) {
+    if (await fs.exists(p)) {
+      templateDir = p;
+      break;
+    }
+  }
+
+  if (!templateDir) {
+    spinner.fail("找不到 Next.js 模板");
+    logger.error("请确保 packages/templates/next 目录存在");
     return;
   }
 
-  // 1. 复制模板
-  spinner.start("复制 Next.js 模板...");
+  spinner.succeed("模板找到");
+
+  // 2. 复制模板
+  spinner.start("复制模板文件...");
+
   try {
     await fs.ensureDir(targetDir);
-    await copyTemplateFiles(nextTemplatePath, targetDir);
-
-    // 排除不需要的文件
-    const excludeFiles = ["node_modules", ".next", ".git", "template.json"];
-    for (const file of excludeFiles) {
-      const filePath = path.join(targetDir, file);
-      if (await fs.exists(filePath)) {
-        await fs.remove(filePath);
-      }
-    }
-
+    await copyTemplateFiles(templateDir, targetDir, projectName);
     spinner.succeed("模板复制完成");
   } catch (error) {
     spinner.fail("模板复制失败");
-    throw error;
+    logger.error((error as Error).message);
+    return;
   }
 
-  // 2. 替换 package.json 中的 {{name}}
+  // 3. 更新 package.json 中的项目名称
   spinner.start("配置项目...");
+
   try {
     const pkgPath = path.join(targetDir, "package.json");
-    let pkgContent = await fs.readText(pkgPath);
-    if (pkgContent) {
-      pkgContent = pkgContent.replace(/\{\{name\}\}/g, projectName);
-      await fs.writeText(pkgPath, pkgContent);
+    const pkg = await fs.readJson<Record<string, unknown>>(pkgPath);
+    if (pkg) {
+      pkg.name = projectName;
+      await fs.writeJson(pkgPath, pkg);
     }
-    spinner.succeed("项目配置完成");
-  } catch {
-    spinner.warn("项目配置失败");
-  }
 
-  // 3. 创建 asterhub.json
-  spinner.start("创建 asterhub.json...");
-  try {
+    // 创建 asterhub.json 配置文件
     await fs.writeJson(path.join(targetDir, "asterhub.json"), {
       $schema: "https://asterhub.dev/schema/asterhub.json",
       style: "tailwind",
@@ -202,17 +141,57 @@ async function createNextProject(
         config: {},
       },
     });
-    spinner.succeed("asterhub.json 创建完成");
-  } catch {
-    spinner.warn("asterhub.json 创建失败");
+
+    spinner.succeed("项目配置完成");
+  } catch (error) {
+    spinner.warn("配置更新失败");
   }
 
   // 4. 安装依赖
   spinner.start("安装依赖...");
+
   try {
-    execSync("npm install", { cwd: targetDir, stdio: "pipe" });
+    execSync("npm install", {
+      cwd: targetDir,
+      stdio: "pipe",
+    });
     spinner.succeed("依赖安装完成");
   } catch {
     spinner.warn("依赖安装失败，请手动运行 npm install");
+  }
+}
+
+async function copyTemplateFiles(
+  srcDir: string,
+  destDir: string,
+  projectName: string
+): Promise<void> {
+  const files = await fs.listDir(srcDir);
+
+  for (const file of files) {
+    // 跳过 node_modules 和 .next
+    if (file === "node_modules" || file === ".next" || file === ".git") {
+      continue;
+    }
+
+    const srcPath = path.join(srcDir, file);
+    const destPath = path.join(destDir, file);
+
+    const stat = await fs.stat(srcPath);
+    if (stat?.isDirectory()) {
+      await fs.ensureDir(destPath);
+      await copyTemplateFiles(srcPath, destPath, projectName);
+    } else {
+      // 复制文件，如果是 package.json 则替换项目名
+      if (file === "package.json") {
+        const content = await fs.readText(srcPath);
+        if (content) {
+          const updated = content.replace(/\{\{name\}\}/g, projectName);
+          await fs.writeText(destPath, updated);
+        }
+      } else {
+        await fs.copy(srcPath, destPath);
+      }
+    }
   }
 }

@@ -2,41 +2,76 @@
  * search 命令 - 搜索资源
  */
 import ora from "ora";
-import { logger } from "../lib";
-import { searchResources } from "../services/registry";
+import prompts from "prompts";
+import { logger, readConfig } from "../lib";
+import { searchResources } from "../services";
+import type { ResourceType, Framework, SearchOptions } from "../types";
 
-interface SearchOptions {
-  type?: string;
-  namespace?: string;
-}
+export async function search(query?: string, options: SearchOptions = {}): Promise<void> {
+  const spinner = ora();
+  const cwd = process.cwd();
 
-export async function search(query: string = "", options: SearchOptions): Promise<void> {
-  const spinner = ora("正在搜索...").start();
+  // 交互式输入
+  if (!query) {
+    const answer = await prompts({
+      type: "text",
+      name: "query",
+      message: "搜索关键词:",
+    });
+    query = answer.query;
+  }
+
+  if (!query) {
+    logger.warn("已取消");
+    return;
+  }
+
+  const config = await readConfig(cwd);
+  const framework = (config?.framework || "expo") as Framework;
+
+  spinner.start(`搜索 "${query}"...`);
 
   try {
-    const resources = await searchResources(query, {
-      type: options.type,
+    const { items, total } = await searchResources(query, {
+      type: options.type as ResourceType,
       namespace: options.namespace,
+      framework,
+      limit: 50,
     });
 
     spinner.stop();
 
-    if (resources.length === 0) {
-      logger.info("没有找到匹配的资源");
+    if (items.length === 0) {
+      logger.warn(`没有找到匹配 "${query}" 的资源`);
       return;
     }
 
-    logger.log(`\n找到 ${resources.length} 个资源:\n`);
+    logger.header("🔍", `搜索结果 "${query}" (${total} 个)`);
 
-    for (const r of resources) {
-      const ns = r.namespace !== "official" ? `@${r.namespace}/` : "";
-      const prefix = r.type !== "ui" ? `${r.type}:` : "";
-      logger.log(`  ${prefix}${ns}${r.name}@${r.latestVersion}`);
-      if (r.description) {
-        logger.log(`    ${r.description}`);
+    const groups = {
+      ui: items.filter((i) => i.type === "ui"),
+      hook: items.filter((i) => i.type === "hook"),
+      lib: items.filter((i) => i.type === "lib"),
+      config: items.filter((i) => i.type === "config"),
+    };
+
+    for (const [type, list] of Object.entries(groups)) {
+      if (list.length === 0) continue;
+
+      const label = type === "ui" ? "UI 组件" : type === "hook" ? "Hooks" : type === "lib" ? "工具函数" : "配置";
+      logger.info(label + ":");
+
+      for (const item of list) {
+        const ns = item.namespace === "aster" ? "" : `@${item.namespace}/`;
+        const prefix = type === "ui" ? "" : `${type}:`;
+        logger.log(`  ${(ns + prefix + item.name).padEnd(30)} ${item.description || ""} ↓${item.downloads}`);
       }
+      logger.newline();
     }
+
+    logger.dim("安装: npx asterhub add <name>");
   } catch (error) {
-    spinner.fail(`搜索失败: ${error instanceof Error ? error.message : "未知错误"}`);
+    spinner.fail("搜索失败");
+    logger.error((error as Error).message);
   }
 }

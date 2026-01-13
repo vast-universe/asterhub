@@ -1,10 +1,15 @@
 /**
  * 配置相关类型
  */
-import type { Framework, Style } from "./common";
 import type { InstalledResource } from "./resource";
 
-// AsterHub 项目配置 (asterhub.json)
+// 框架类型
+export type Framework = "next" | "expo" | "nuxt";
+
+// 样式类型
+export type Style = "tailwind" | "nativewind" | "stylesheet";
+
+// AsterHub 配置
 export interface AsterHubConfig {
   $schema?: string;
   style: Style;

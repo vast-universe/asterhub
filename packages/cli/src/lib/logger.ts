@@ -46,11 +46,6 @@ export const logger = {
     console.log();
   },
 
-  // 空行 (别名)
-  break: () => {
-    console.log();
-  },
-
   // 标题
   title: (message: string) => {
     console.log(chalk.bold(message));

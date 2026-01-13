@@ -3,7 +3,7 @@
  */
 
 // API 配置
-export const API_URL = process.env.ASTERHUB_API_URL || "https://asterhub.dev";
+export const API_URL = process.env.ASTER_API_URL || "https://asterhub.dev";
 
 // 默认配置
 export const DEFAULT_FRAMEWORK = "expo" as const;
@@ -15,7 +15,7 @@ export const CREDENTIALS_FILE = "credentials.json";
 export const TRANSACTION_FILE = ".transaction.json";
 
 // 目录
-export const ASTERHUB_DIR = ".asterhub";
+export const ASTER_DIR = ".asterhub";
 export const CREDENTIALS_DIR = ".asterhub";
 
 // 限制

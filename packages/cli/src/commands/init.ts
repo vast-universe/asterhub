@@ -1,58 +1,83 @@
 /**
- * init 命令 - 初始化 AsterHub 配置
+ * init 命令 - 初始化 Aster 配置
  */
 import prompts from "prompts";
-import { logger, hasConfig, ensureConfig, writeConfig } from "../lib";
-import { DEFAULT_FRAMEWORK, DEFAULT_STYLE } from "../constants";
-import type { AsterHubConfig } from "../types";
+import { logger, fs, hasConfig, writeConfig } from "../lib";
+import type { AsterHubConfig, Style, Framework } from "../types";
 
 export async function init(): Promise<void> {
-  if (await hasConfig()) {
-    logger.warn("asterhub.json 已存在");
+  const cwd = process.cwd();
+
+  logger.header("🚀", "初始化 Aster");
+
+  // 检查是否已存在配置
+  if (await hasConfig(cwd)) {
     const { overwrite } = await prompts({
       type: "confirm",
       name: "overwrite",
-      message: "是否覆盖现有配置?",
+      message: "asterhub.json 已存在，是否覆盖？",
       initial: false,
     });
-    if (!overwrite) return;
+
+    if (!overwrite) {
+      logger.warn("已取消");
+      return;
+    }
   }
 
-  const answers = await prompts([
+  // 选择样式方案
+  const { style } = await prompts({
+    type: "select",
+    name: "style",
+    message: "选择样式方案:",
+    choices: [
+      { title: "NativeWind (Tailwind CSS)", value: "nativewind" },
+      { title: "StyleSheet (原生样式)", value: "stylesheet" },
+    ],
+    initial: 0,
+  });
+
+  if (!style) {
+    logger.warn("已取消");
+    return;
+  }
+
+  // 配置路径
+  const paths = await prompts([
     {
-      type: "select",
-      name: "framework",
-      message: "选择框架",
-      choices: [
-        { title: "Expo", value: "expo" },
-        { title: "React Native", value: "react-native" },
-        { title: "Next.js", value: "nextjs" },
-      ],
-      initial: 0,
+      type: "text",
+      name: "components",
+      message: "组件存放目录:",
+      initial: "@/components",
     },
     {
-      type: "select",
-      name: "style",
-      message: "选择样式方案",
-      choices: [
-        { title: "NativeWind", value: "nativewind" },
-        { title: "Tamagui", value: "tamagui" },
-        { title: "Unistyles", value: "unistyles" },
-      ],
-      initial: 0,
+      type: "text",
+      name: "hooks",
+      message: "Hooks 目录:",
+      initial: "@/hooks",
+    },
+    {
+      type: "text",
+      name: "lib",
+      message: "工具函数目录:",
+      initial: "@/lib",
     },
   ]);
 
-  if (!answers.framework) return;
+  if (!paths.components) {
+    logger.warn("已取消");
+    return;
+  }
 
+  // 创建配置
   const config: AsterHubConfig = {
     $schema: "https://asterhub.dev/schema/asterhub.json",
-    style: answers.style || DEFAULT_STYLE,
-    framework: answers.framework || DEFAULT_FRAMEWORK,
+    framework: "expo" as Framework,
+    style: style as Style,
     aliases: {
-      components: "@/components",
-      hooks: "@/hooks",
-      lib: "@/lib",
+      components: paths.components,
+      hooks: paths.hooks,
+      lib: paths.lib,
     },
     installed: {
       ui: {},
@@ -62,6 +87,44 @@ export async function init(): Promise<void> {
     },
   };
 
-  await writeConfig(config);
-  logger.success("已创建 asterhub.json");
+  await writeConfig(config, cwd);
+
+  // 创建目录 (直接使用别名路径，去掉 @/ 前缀)
+  const dirs = [
+    paths.components.replace(/^[@~]\//, ""),
+    paths.hooks.replace(/^[@~]\//, ""),
+    paths.lib.replace(/^[@~]\//, ""),
+  ];
+
+  for (const dir of dirs) {
+    await fs.ensureDir(fs.join(cwd, dir));
+  }
+
+  logger.success("创建 asterhub.json");
+  logger.dim(`  框架: expo`);
+  logger.dim(`  样式方案: ${style}`);
+
+  // 提示配置路径别名
+  logger.newline();
+  logger.warn("请确保在 tsconfig.json 中配置路径别名:");
+  logger.dim(`
+  {
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["./*"]
+      }
+    }
+  }
+`);
+
+  // NativeWind 提示
+  if (style === "nativewind") {
+    logger.warn("NativeWind 风格需要先配置 NativeWind:");
+    logger.dim("  https://www.nativewind.dev/getting-started/expo-router");
+  }
+
+  logger.newline();
+  logger.dim("运行 npx asterhub add button 添加第一个组件");
+  logger.newline();
 }
