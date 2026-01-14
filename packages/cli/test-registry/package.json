@@ -1,0 +1,13 @@
+{
+  "name": "test-registry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "My AsterHub Registry",
+  "scripts": {
+    "build": "npx asterhub registry build",
+    "publish:registry": "npx asterhub registry publish"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

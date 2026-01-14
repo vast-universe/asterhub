@@ -89,7 +89,7 @@ export async function list(options: ListOptions = {}): Promise<void> {
       logger.info(label + ":");
 
       for (const item of list) {
-        const ns = item.namespace === "aster" ? "" : `@${item.namespace}/`;
+        const ns = item.namespace === "asterhub" ? "" : `@${item.namespace}/`;
         const prefix = t === "ui" ? "" : `${t}:`;
         logger.log(`  ${ns}${prefix}${item.name} - ${item.description || ""} ↓${item.downloads}`);
       }

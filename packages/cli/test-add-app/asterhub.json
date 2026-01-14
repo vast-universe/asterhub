@@ -1,0 +1,28 @@
+{
+  "$schema": "https://asterhub.dev/schema/asterhub.json",
+  "style": "tailwind",
+  "framework": "next",
+  "aliases": {
+    "components": "@/components",
+    "hooks": "@/hooks",
+    "lib": "@/lib"
+  },
+  "installed": {
+    "ui": {
+      "button": {
+        "version": "1.0.0",
+        "namespace": "asterhub",
+        "installedAt": "2026-01-14T05:39:46.539Z"
+      }
+    },
+    "hook": {},
+    "lib": {
+      "utils": {
+        "version": "1.0.0",
+        "namespace": "asterhub",
+        "installedAt": "2026-01-14T05:39:46.539Z"
+      }
+    },
+    "config": {}
+  }
+}

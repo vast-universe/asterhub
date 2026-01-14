@@ -4,7 +4,7 @@
  */
 
 // 环境配置
-export { API_URL, REQUEST_TIMEOUT, DEBUG, debug } from "../config/env";
+export { API_URL, GITHUB_CLIENT_ID, REQUEST_TIMEOUT, DEBUG, debug } from "../config/env";
 
 // 默认配置
 export { DEFAULT_FRAMEWORK, DEFAULT_STYLE, RESOURCE_TYPES } from "../config/defaults";

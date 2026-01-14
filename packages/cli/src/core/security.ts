@@ -150,7 +150,7 @@ export function validateNamespace(namespace: string): { valid: boolean; error?: 
     return { valid: false, error: "命名空间只能包含小写字母、数字、下划线和连字符" };
   }
 
-  const reserved = ["aster", "official", "admin", "api", "www", "app", "docs"];
+  const reserved = ["asterhub", "official", "admin", "api", "www", "app", "docs"];
   if (reserved.includes(namespace)) {
     return { valid: false, error: `"${namespace}" 是保留名称` };
   }

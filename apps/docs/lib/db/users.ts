@@ -31,14 +31,18 @@ export async function createUser(data: CreateUserData): Promise<User> {
  */
 export async function updateUser(
   userId: number,
-  data: Partial<Pick<User, "github_username" | "email" | "avatar_url">>
+  data: { github_username?: string; email?: string | null; avatar_url?: string | null }
 ): Promise<User | null> {
+  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!user.rows[0]) return null;
+
+  const current = user.rows[0] as User;
   const { rows } = await sql`
     UPDATE users 
     SET 
-      github_username = COALESCE(${data.github_username || null}, github_username),
-      email = COALESCE(${data.email || null}, email),
-      avatar_url = COALESCE(${data.avatar_url || null}, avatar_url)
+      github_username = ${data.github_username !== undefined ? data.github_username : current.github_username},
+      email = ${data.email !== undefined ? data.email : current.email},
+      avatar_url = ${data.avatar_url !== undefined ? data.avatar_url : current.avatar_url}
     WHERE id = ${userId}
     RETURNING *
   `;

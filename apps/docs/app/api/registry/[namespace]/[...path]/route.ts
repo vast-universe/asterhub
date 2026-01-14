@@ -13,6 +13,36 @@ import {
 } from "@/lib/db";
 import { getCachedResource, cacheResource } from "@/lib/redis";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "@/lib/redis/ratelimit";
+import { promises as fs } from "fs";
+import path from "path";
+
+// 本地开发时从 dist 目录读取
+async function getFromLocal(
+  type: string,
+  name: string,
+  style: string,
+  version: string
+): Promise<string | null> {
+  try {
+    // 本地 dist 目录路径
+    const distDir = path.resolve(process.cwd(), "../../packages/registry/dist");
+    let filePath: string;
+
+    if (type === "ui") {
+      filePath = path.join(distDir, "components", style, name, `${version}.json`);
+    } else if (type === "hook") {
+      filePath = path.join(distDir, "hooks", name, `${version}.json`);
+    } else if (type === "lib") {
+      filePath = path.join(distDir, "lib", name, `${version}.json`);
+    } else {
+      filePath = path.join(distDir, "configs", name, `${version}.json`);
+    }
+
+    return await fs.readFile(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(
   request: Request,
@@ -36,7 +66,7 @@ export async function GET(
       : rawNamespace;
 
     const { searchParams } = new URL(request.url);
-    const style = searchParams.get("style") || "nativewind";
+    const style = searchParams.get("style") || "tailwind";
 
     if (!path || path.length < 1) {
       return NextResponse.json({ error: "缺少资源名称" }, { status: 400 });
@@ -123,7 +153,12 @@ export async function GET(
     }
 
     // 从 R2 获取
-    const content = await getFromR2(r2Path);
+    let content = await getFromR2(r2Path);
+
+    // 本地开发回退：从 dist 目录读取
+    if (!content && namespace === "asterhub") {
+      content = await getFromLocal(type, name, style, version);
+    }
 
     if (!content) {
       return NextResponse.json(

@@ -1,3 +1,5 @@
+import { UserNav } from "@/components/user-nav";
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 font-sans dark:bg-black">
@@ -30,6 +32,7 @@ export default function Home() {
             >
               GitHub
             </a>
+            <UserNav />
           </nav>
         </div>
       </header>

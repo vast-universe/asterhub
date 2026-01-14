@@ -46,7 +46,7 @@ function parseInput(input: string): ResourceRef | null {
     name = name.slice(4);
   }
 
-  return { namespace: "aster", type, name, version };
+  return { namespace: "asterhub", type, name, version };
 }
 
 /**
@@ -152,7 +152,7 @@ export async function add(items: string[], options: AddOptions = {}): Promise<vo
   logger.newline();
 
   // 4. 安全检查（社区组件）
-  const communityResources = resources.filter((r) => r.ref.namespace !== "aster");
+  const communityResources = resources.filter((r) => r.ref.namespace !== "asterhub");
 
   if (communityResources.length > 0 && !options.skipSecurity) {
     spinner.start("安全检查...");

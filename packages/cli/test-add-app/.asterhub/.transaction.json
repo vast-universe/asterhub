@@ -1,0 +1,19 @@
+{
+  "id": "tx_1768369186533_j5o56h",
+  "startedAt": "2026-01-14T05:39:46.538Z",
+  "operations": [
+    {
+      "type": "write",
+      "path": "/Users/huangpeng/learn/cli/asterhub/packages/cli/test-add-app/lib/utils.ts",
+      "content": "import { clsx, type ClassValue } from \"clsx\";\nimport { twMerge } from \"tailwind-merge\";\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n",
+      "backup": "import { clsx, type ClassValue } from \"clsx\";\nimport { twMerge } from \"tailwind-merge\";\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n"
+    },
+    {
+      "type": "write",
+      "path": "/Users/huangpeng/learn/cli/asterhub/packages/cli/test-add-app/components/ui/button.tsx",
+      "content": "import { forwardRef } from \"react\";\nimport { cva, type VariantProps } from \"class-variance-authority\";\nimport { cn } from \"@/lib/utils\";\n\nconst buttonVariants = cva(\n  \"inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50\",\n  {\n    variants: {\n      variant: {\n        default: \"bg-blue-600 text-white hover:bg-blue-700\",\n        secondary: \"bg-gray-100 text-gray-900 hover:bg-gray-200\",\n        destructive: \"bg-red-600 text-white hover:bg-red-700\",\n        outline: \"border border-gray-300 bg-transparent hover:bg-gray-100\",\n        ghost: \"hover:bg-gray-100\",\n        link: \"text-blue-600 underline-offset-4 hover:underline\",\n      },\n      size: {\n        default: \"h-10 px-4 py-2\",\n        sm: \"h-9 px-3 text-sm\",\n        lg: \"h-11 px-8 text-lg\",\n        icon: \"h-10 w-10\",\n      },\n    },\n    defaultVariants: {\n      variant: \"default\",\n      size: \"default\",\n    },\n  }\n);\n\nexport interface ButtonProps\n  extends React.ButtonHTMLAttributes<HTMLButtonElement>,\n    VariantProps<typeof buttonVariants> {}\n\nexport const Button = forwardRef<HTMLButtonElement, ButtonProps>(\n  ({ className, variant, size, ...props }, ref) => {\n    return (\n      <button\n        className={cn(buttonVariants({ variant, size, className }))}\n        ref={ref}\n        {...props}\n      />\n    );\n  }\n);\n\nButton.displayName = \"Button\";\n",
+      "backup": "import { forwardRef } from \"react\";\nimport { cva, type VariantProps } from \"class-variance-authority\";\nimport { cn } from \"@/lib/utils\";\n\nconst buttonVariants = cva(\n  \"inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50\",\n  {\n    variants: {\n      variant: {\n        default: \"bg-blue-600 text-white hover:bg-blue-700\",\n        secondary: \"bg-gray-100 text-gray-900 hover:bg-gray-200\",\n        destructive: \"bg-red-600 text-white hover:bg-red-700\",\n        outline: \"border border-gray-300 bg-transparent hover:bg-gray-100\",\n        ghost: \"hover:bg-gray-100\",\n        link: \"text-blue-600 underline-offset-4 hover:underline\",\n      },\n      size: {\n        default: \"h-10 px-4 py-2\",\n        sm: \"h-9 px-3 text-sm\",\n        lg: \"h-11 px-8 text-lg\",\n        icon: \"h-10 w-10\",\n      },\n    },\n    defaultVariants: {\n      variant: \"default\",\n      size: \"default\",\n    },\n  }\n);\n\nexport interface ButtonProps\n  extends React.ButtonHTMLAttributes<HTMLButtonElement>,\n    VariantProps<typeof buttonVariants> {}\n\nexport const Button = forwardRef<HTMLButtonElement, ButtonProps>(\n  ({ className, variant, size, ...props }, ref) => {\n    return (\n      <button\n        className={cn(buttonVariants({ variant, size, className }))}\n        ref={ref}\n        {...props}\n      />\n    );\n  }\n);\n\nButton.displayName = \"Button\";\n"
+    }
+  ],
+  "completed": true
+}

@@ -42,7 +42,7 @@ function parseInput(input: string): ResourceRef | null {
     name = input.slice(4);
   }
 
-  return { namespace: "aster", type, name };
+  return { namespace: "asterhub", type, name };
 }
 
 export async function view(item: string, options: ViewOptions = {}): Promise<void> {

@@ -9,6 +9,9 @@ export const DEFAULT_FRAMEWORK: Framework = "next";
 // 默认样式
 export const DEFAULT_STYLE: Style = "tailwind";
 
+// 默认官方命名空间
+export const DEFAULT_NAMESPACE = "asterhub";
+
 // 默认路径别名
 export const DEFAULT_ALIASES = {
   components: "@/components",

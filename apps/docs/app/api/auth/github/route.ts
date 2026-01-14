@@ -1,6 +1,10 @@
 /**
  * GitHub OAuth 登录
  * GET /api/auth/github?cli=1&port=9876
+ * 
+ * 支持两种模式:
+ * 1. CLI 登录: ?cli=1&port=9876 - 回调到本地服务器
+ * 2. Web 登录: 无参数 - 回调到 /api/auth/github/callback
  */
 import { redirect } from "next/navigation";
 
@@ -12,9 +16,11 @@ export async function GET(request: Request) {
   // 将 port 信息编码到 state 中
   const state = cli ? (port ? `cli:${port}` : "cli") : "web";
 
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3002";
+  
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID!,
-    redirect_uri: `${process.env.NEXT_PUBLIC_URL || "https://asterhub.dev"}/api/auth/github/callback`,
+    redirect_uri: `${baseUrl}/api/auth/github/callback`,
     scope: "read:user user:email",
     state,
   });

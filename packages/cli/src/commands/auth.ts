@@ -1,128 +1,116 @@
 /**
  * 认证命令 - login, logout, whoami
+ * 使用 GitHub Device Flow
  */
-import http from "http";
 import ora from "ora";
 import prompts from "prompts";
 import open from "open";
-import { API_URL } from "../constants";
+import { GITHUB_CLIENT_ID } from "../constants";
 import { logger, writeCredentials, clearCredentials, readCredentials, getToken } from "../lib";
-import { get, del } from "../lib/http";
+import { post } from "../lib/http";
 import { verifyToken } from "../services";
-import type { TokenInfo } from "../types";
 
-/**
- * 撤销所有 CLI Token
- */
-async function revokeOldCliTokens(): Promise<void> {
-  try {
-    const { tokens } = await get<{ tokens: TokenInfo[] }>("/api/auth/tokens", { auth: true });
-    const cliTokens = tokens?.filter((t) => t.name?.startsWith("CLI Token")) || [];
-    
-    for (const t of cliTokens) {
-      try {
-        await del(`/api/auth/tokens/${t.id}`, { auth: true });
-      } catch {
-        // 忽略撤销失败
-      }
-    }
-  } catch {
-    // 忽略获取失败
-  }
+interface DeviceCodeResponse {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  expires_in: number;
+  interval: number;
+}
+
+interface TokenResponse {
+  access_token?: string;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+  error_description?: string;
 }
 
 /**
- * 启动本地服务器等待 OAuth 回调
+ * 请求 Device Code
  */
-function startCallbackServer(port: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer((req, res) => {
-      const url = new URL(req.url || "/", `http://localhost:${port}`);
-      const token = url.searchParams.get("token");
-      const error = url.searchParams.get("error");
-
-      // 返回 HTML 页面
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      
-      if (error) {
-        res.end(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>登录失败</title></head>
-          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h1 style="color: #ef4444;">❌ 登录失败</h1>
-            <p>${error}</p>
-            <p>请关闭此页面，返回终端重试</p>
-          </body>
-          </html>
-        `);
-        server.close();
-        reject(new Error(error));
-        return;
-      }
-
-      if (token) {
-        res.end(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>登录成功</title></head>
-          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h1 style="color: #22c55e;">✅ 登录成功!</h1>
-            <p>请返回终端查看结果</p>
-            <p style="color: #666;">此页面可以关闭</p>
-          </body>
-          </html>
-        `);
-        server.close();
-        resolve(token);
-        return;
-      }
-
-      res.end("Invalid request");
-      server.close();
-      reject(new Error("Invalid callback"));
-    });
-
-    server.listen(port, "127.0.0.1", () => {
-      // 服务器启动成功
-    });
-
-    server.on("error", (err: NodeJS.ErrnoException) => {
-      if (err.code === "EADDRINUSE") {
-        reject(new Error(`端口 ${port} 已被占用`));
-      } else {
-        reject(err);
-      }
-    });
-
-    // 超时处理 (3 分钟)
-    setTimeout(() => {
-      server.close();
-      reject(new Error("登录超时，请重试"));
-    }, 3 * 60 * 1000);
+async function requestDeviceCode(): Promise<DeviceCodeResponse> {
+  const res = await fetch("https://github.com/login/device/code", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: GITHUB_CLIENT_ID,
+      scope: "read:user user:email",
+    }),
   });
+
+  if (!res.ok) {
+    throw new Error("无法获取设备代码");
+  }
+
+  return res.json();
 }
 
 /**
- * 查找可用端口
+ * 轮询获取 Access Token
  */
-async function findAvailablePort(startPort: number): Promise<number> {
-  for (let port = startPort; port < startPort + 100; port++) {
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const server = http.createServer();
-        server.listen(port, "127.0.0.1", () => {
-          server.close();
-          resolve();
-        });
-        server.on("error", reject);
-      });
-      return port;
-    } catch {
+async function pollForToken(deviceCode: string, interval: number, expiresIn: number): Promise<string> {
+  const startTime = Date.now();
+  const expiresAt = startTime + expiresIn * 1000;
+
+  while (Date.now() < expiresAt) {
+    await new Promise((resolve) => setTimeout(resolve, interval * 1000));
+
+    const res = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        device_code: deviceCode,
+        grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      }),
+    });
+
+    const data: TokenResponse = await res.json();
+
+    if (data.access_token) {
+      return data.access_token;
+    }
+
+    if (data.error === "authorization_pending") {
       continue;
     }
+
+    if (data.error === "slow_down") {
+      interval += 5;
+      continue;
+    }
+
+    if (data.error === "expired_token") {
+      throw new Error("验证码已过期，请重新登录");
+    }
+
+    if (data.error === "access_denied") {
+      throw new Error("用户拒绝授权");
+    }
+
+    if (data.error) {
+      throw new Error(data.error_description || data.error);
+    }
   }
-  throw new Error("找不到可用端口");
+
+  throw new Error("登录超时，请重试");
+}
+
+/**
+ * 用 GitHub access token 换取 AsterHub token
+ */
+async function exchangeToken(githubAccessToken: string): Promise<string> {
+  const data = await post<{ token: string }>("/api/auth/exchange", {
+    github_access_token: githubAccessToken,
+  });
+  return data.token;
 }
 
 /**
@@ -145,56 +133,66 @@ export async function login(): Promise<void> {
       logger.dim("已取消");
       return;
     }
-
-    // 撤销旧的 CLI Token
-    logger.dim("清理旧的 Token...");
-    await revokeOldCliTokens();
   }
 
-  const spinner = ora("准备登录...").start();
+  const spinner = ora("正在连接 GitHub...").start();
 
   try {
-    // 启动本地服务器
-    const port = await findAvailablePort(9876);
-    spinner.text = "正在打开浏览器...";
+    // 1. 请求 Device Code
+    const deviceCode = await requestDeviceCode();
+    spinner.stop();
 
-    // 打开浏览器
-    const authUrl = `${API_URL}/api/auth/github?cli=1&port=${port}`;
-    
+    // 2. 显示验证码
+    logger.newline();
+    logger.log("请访问以下地址完成授权:");
+    logger.newline();
+    logger.log(`  ${deviceCode.verification_uri}`);
+    logger.newline();
+    logger.log("并输入验证码:");
+    logger.newline();
+    logger.log(`  ${deviceCode.user_code}`);
+    logger.newline();
+
+    // 尝试自动打开浏览器
     try {
-      await open(authUrl);
+      await open(deviceCode.verification_uri);
+      logger.dim("已自动打开浏览器");
     } catch {
-      // 忽略打开浏览器失败
+      // 忽略
     }
 
-    spinner.text = "等待 GitHub 授权...";
     logger.newline();
-    logger.dim(`如果浏览器没有自动打开，请手动访问:`);
-    logger.dim(authUrl);
-    logger.newline();
+    const pollSpinner = ora("等待授权...").start();
 
-    // 等待回调
-    const token = await startCallbackServer(port);
+    // 3. 轮询获取 Token
+    const githubToken = await pollForToken(
+      deviceCode.device_code,
+      deviceCode.interval,
+      deviceCode.expires_in
+    );
 
-    spinner.text = "验证 Token...";
+    pollSpinner.text = "正在创建 AsterHub Token...";
 
-    // 验证 token
-    const user = await verifyToken(token);
+    // 4. 换取 AsterHub Token
+    const asterhubToken = await exchangeToken(githubToken);
+
+    // 5. 验证并保存
+    const user = await verifyToken(asterhubToken);
 
     await writeCredentials({
-      token,
+      token: asterhubToken,
       user,
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     });
 
-    spinner.succeed("登录成功!");
+    pollSpinner.succeed("登录成功!");
     logger.newline();
     logger.item("用户", user.username);
     logger.item("邮箱", user.email || "未设置");
     logger.item("命名空间", user.namespaces.map((n) => "@" + n).join(", "));
     logger.newline();
   } catch (error) {
-    spinner.fail((error as Error).message || "登录失败");
+    logger.error((error as Error).message || "登录失败");
   }
 }
 

@@ -2,7 +2,7 @@
  * Token 数据库操作
  */
 import { sql } from "@vercel/postgres";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import type { Token, TokenScope, User } from "@/types";
 import { TOKEN_CONFIG } from "../constants";
 
@@ -14,25 +14,33 @@ function hashToken(token: string): string {
 }
 
 /**
- * 创建 Token
+ * 生成随机 Token
+ */
+function generateToken(): string {
+  return `ash_${randomBytes(32).toString("hex")}`;
+}
+
+/**
+ * 创建 Token（返回原始 token 字符串，只在创建时可见）
  */
 export async function createToken(
   userId: number,
-  token: string,
-  name?: string,
-  scopes: TokenScope[] = ["read", "publish"]
-): Promise<Token> {
-  const tokenHash = hashToken(token);
+  name: string,
+  scope: string = "publish"
+): Promise<{ token: Token; rawToken: string }> {
+  const rawToken = generateToken();
+  const tokenHash = hashToken(rawToken);
   const expiresAt = new Date();
   expiresAt.setFullYear(expiresAt.getFullYear() + TOKEN_CONFIG.EXPIRY_YEARS);
+  const scopes = scope === "read" ? ["read"] : ["read", "publish"];
   const scopesArray = `{${scopes.join(",")}}`;
 
   const { rows } = await sql`
     INSERT INTO tokens (user_id, token_hash, name, scopes, expires_at)
-    VALUES (${userId}, ${tokenHash}, ${name || null}, ${scopesArray}::text[], ${expiresAt.toISOString()})
+    VALUES (${userId}, ${tokenHash}, ${name}, ${scopesArray}::text[], ${expiresAt.toISOString()})
     RETURNING *
   `;
-  return rows[0] as Token;
+  return { token: rows[0] as Token, rawToken };
 }
 
 /**

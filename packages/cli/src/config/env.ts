@@ -10,6 +10,9 @@
 // API 地址
 export const API_URL = process.env.ASTERHUB_API_URL || "https://asterhub.dev";
 
+// GitHub OAuth Client ID (公开的，可以硬编码)
+export const GITHUB_CLIENT_ID = process.env.ASTERHUB_GITHUB_CLIENT_ID || "Ov23liLX6Qi1LYapLbRM";
+
 // 调试模式
 export const DEBUG = process.env.ASTERHUB_DEBUG === "true" || process.env.ASTERHUB_DEBUG === "1";
 

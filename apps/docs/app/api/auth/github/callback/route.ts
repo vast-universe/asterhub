@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   // 解析 state: "web" | "cli" | "cli:9876"
   const isCli = state.startsWith("cli");
   const cliPort = state.startsWith("cli:") ? state.split(":")[1] : null;
+  const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3002";
 
   try {
     // 1. 获取 access token
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
       if (cliPort) {
         return NextResponse.redirect(`http://127.0.0.1:${cliPort}?error=${encodeURIComponent(error || "OAuth failed")}`);
       }
-      return new Response(`OAuth error: ${error}`, { status: 400 });
+      return NextResponse.redirect(`${baseUrl}/login?error=${encodeURIComponent(error || "OAuth failed")}`);
     }
 
     // 2. 获取用户信息
@@ -78,13 +79,13 @@ export async function GET(request: Request) {
     }
 
     // 4. 生成 token
-    const token = `asterhub_${nanoid(32)}`;
-    await createToken(user.id, token, isCli ? "CLI Token" : "Web Token");
+    const tokenName = isCli ? "CLI Token" : "Web Session";
+    const { rawToken } = await createToken(user.id, tokenName, "publish");
 
     // 5. 返回
     if (cliPort) {
       // CLI 登录 (有端口)，重定向到本地服务器
-      return NextResponse.redirect(`http://127.0.0.1:${cliPort}?token=${token}`);
+      return NextResponse.redirect(`http://127.0.0.1:${cliPort}?token=${rawToken}`);
     }
 
     if (isCli) {
@@ -134,13 +135,13 @@ export async function GET(request: Request) {
     <h1>✅ 登录成功!</h1>
     <p>欢迎, <strong>${user.github_username}</strong></p>
     <p>请复制以下 Token 到终端:</p>
-    <div class="token" onclick="copyToken()" id="token">${token}</div>
+    <div class="token" onclick="copyToken()" id="token">${rawToken}</div>
     <p class="hint" id="hint">点击复制</p>
     <p class="hint">此页面可以关闭</p>
   </div>
   <script>
     function copyToken() {
-      navigator.clipboard.writeText('${token}');
+      navigator.clipboard.writeText('${rawToken}');
       document.getElementById('hint').innerHTML = '<span class="copied">已复制!</span>';
     }
   </script>
@@ -150,21 +151,22 @@ export async function GET(request: Request) {
       );
     }
 
-    // Web 登录，设置 cookie 并跳转
+    // Web 登录，设置 session cookie 并跳转到 dashboard
     const cookieStore = await cookies();
-    cookieStore.set("token", token, {
+    cookieStore.set("session_token", rawToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: "/",
     });
 
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(`${baseUrl}/dashboard`);
   } catch (error) {
     console.error("OAuth error:", error);
     if (cliPort) {
       return NextResponse.redirect(`http://127.0.0.1:${cliPort}?error=${encodeURIComponent("Authentication failed")}`);
     }
-    return new Response("Authentication failed", { status: 500 });
+    return NextResponse.redirect(`${baseUrl}/login?error=auth_failed`);
   }
 }

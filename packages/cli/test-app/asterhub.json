@@ -1,0 +1,16 @@
+{
+  "$schema": "https://asterhub.dev/schema/asterhub.json",
+  "style": "tailwind",
+  "framework": "next",
+  "aliases": {
+    "components": "@/components",
+    "hooks": "@/hooks",
+    "lib": "@/lib"
+  },
+  "installed": {
+    "ui": {},
+    "hook": {},
+    "lib": {},
+    "config": {}
+  }
+}

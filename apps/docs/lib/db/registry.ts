@@ -177,6 +177,7 @@ export async function searchRegistryItems(
 ): Promise<SearchResponse> {
   const { type, style, namespace, limit = 20, offset = 0 } = options;
 
+  // style 只对 UI 组件有效，其他类型忽略 style 过滤
   const { rows } = await sql`
     SELECT 
       ri.*, n.name as namespace_name,
@@ -189,7 +190,7 @@ export async function searchRegistryItems(
     WHERE 
       (${query || ""}::text = '' OR to_tsvector('simple', ri.name || ' ' || COALESCE(ri.description, '')) @@ plainto_tsquery('simple', ${query}))
       AND (${type || null}::text IS NULL OR ri.type = ${type})
-      AND (${style || null}::text IS NULL OR ri.style = ${style})
+      AND (${style || null}::text IS NULL OR ri.type != 'ui' OR ri.style = ${style})
       AND (${namespace || null}::text IS NULL OR n.name = ${namespace})
       AND ri.deprecated = false
     ORDER BY ri.is_official DESC, relevance DESC, ri.total_downloads DESC
@@ -204,7 +205,7 @@ export async function searchRegistryItems(
     WHERE 
       (${query || ""}::text = '' OR to_tsvector('simple', ri.name || ' ' || COALESCE(ri.description, '')) @@ plainto_tsquery('simple', ${query}))
       AND (${type || null}::text IS NULL OR ri.type = ${type})
-      AND (${style || null}::text IS NULL OR ri.style = ${style})
+      AND (${style || null}::text IS NULL OR ri.type != 'ui' OR ri.style = ${style})
       AND (${namespace || null}::text IS NULL OR n.name = ${namespace})
       AND ri.deprecated = false
   `;

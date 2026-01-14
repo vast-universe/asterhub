@@ -75,13 +75,12 @@ async function createNextProject(
 
   // 获取 CLI 包的根目录，然后找到 templates/next
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const cliRoot = path.resolve(__dirname, "../..");
   
   // 尝试多个可能的模板路径
   const possiblePaths = [
-    path.resolve(cliRoot, "../templates/next"),           // monorepo: packages/cli -> packages/templates/next
-    path.resolve(cliRoot, "../../packages/templates/next"), // 从 dist 目录
-    path.resolve(process.cwd(), "packages/templates/next"), // 当前工作目录
+    path.resolve(__dirname, "../../templates/next"),        // 从 dist: cli/dist -> cli/../templates/next
+    path.resolve(__dirname, "../../../templates/next"),     // 从 src: cli/src/commands -> templates/next
+    path.resolve(__dirname, "../../../../packages/templates/next"), // 更深层级
   ];
 
   let templateDir: string | null = null;
