@@ -1,27 +1,25 @@
 /**
- * 全局常量
+ * 常量统一导出 (从 config 模块重新导出)
+ * @deprecated 请直接从 ../config 导入
  */
 
-// API 配置
-export const API_URL = process.env.ASTER_API_URL || "https://asterhub.dev";
+// 环境配置
+export { API_URL, REQUEST_TIMEOUT, DEBUG, debug } from "../config/env";
 
 // 默认配置
-export const DEFAULT_FRAMEWORK = "expo" as const;
-export const DEFAULT_STYLE = "nativewind" as const;
+export { DEFAULT_FRAMEWORK, DEFAULT_STYLE, RESOURCE_TYPES } from "../config/defaults";
 
-// 文件名
-export const CONFIG_FILE = "asterhub.json";
-export const CREDENTIALS_FILE = "credentials.json";
-export const TRANSACTION_FILE = ".transaction.json";
+// 路径配置
+export {
+  CONFIG_FILE,
+  CREDENTIALS_FILE,
+  TRANSACTION_FILE,
+  ASTERHUB_DIR as ASTER_DIR,
+  ASTERHUB_DIR as CREDENTIALS_DIR,
+} from "../config/paths";
 
-// 目录
-export const ASTER_DIR = ".asterhub";
-export const CREDENTIALS_DIR = ".asterhub";
+// 限制配置
+export { MAX_PUBLISH_SIZE } from "../config/limits";
 
-// 限制
-export const MAX_PUBLISH_SIZE = 5 * 1024 * 1024; // 5MB
-export const REQUEST_TIMEOUT = 60000; // 60s
-
-// 资源类型
-export const RESOURCE_TYPES = ["ui", "hook", "lib", "config"] as const;
-export type ResourceType = (typeof RESOURCE_TYPES)[number];
+// 类型
+export type { ResourceType } from "../types";

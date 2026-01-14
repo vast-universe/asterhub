@@ -1,5 +1,5 @@
 /**
- * registry create - 创建 Registry 项目
+ * registry create - 创建 Registry 项目 (Next.js)
  */
 import prompts from "prompts";
 import { logger, fs } from "../../lib";
@@ -12,7 +12,7 @@ const TEMPLATE_PACKAGE_JSON = (name: string) => ({
   name,
   version: "1.0.0",
   private: true,
-  description: "My Aster Registry",
+  description: "My AsterHub Registry",
   scripts: {
     build: "npx asterhub registry build",
     "publish:registry": "npx asterhub registry publish",
@@ -29,7 +29,6 @@ const TEMPLATE_TSCONFIG = {
     moduleResolution: "bundler",
     strict: true,
     jsx: "react-jsx",
-    jsxImportSource: "react",
     esModuleInterop: true,
     skipLibCheck: true,
     baseUrl: ".",
@@ -42,7 +41,7 @@ const TEMPLATE_TSCONFIG = {
 };
 
 const TEMPLATE_CONFIG = (namespace: string) => `/**
- * Aster Registry 配置
+ * AsterHub Registry 配置
  * 文档: https://asterhub.dev/docs/registry
  */
 export default {
@@ -53,20 +52,19 @@ export default {
   description: "我的组件库",
 
   // 支持的框架
-  frameworks: ["expo"],
+  frameworks: ["next"],
 
   // UI 组件
   components: [
     {
       name: "button",
       version: "1.0.0",
-      style: "nativewind",
+      style: "tailwind",
       description: "按钮组件",
       files: [
-        "src/components/nativewind/button/button.tsx",
-        "src/components/nativewind/button/index.ts",
+        "src/components/tailwind/button.tsx",
       ],
-      dependencies: [],
+      dependencies: ["class-variance-authority"],
       registryDependencies: ["lib:utils"],
     },
   ],
@@ -78,8 +76,7 @@ export default {
       version: "1.0.0",
       description: "防抖 Hook",
       files: [
-        "src/hooks/use-debounce/use-debounce.ts",
-        "src/hooks/use-debounce/index.ts",
+        "src/hooks/use-debounce.ts",
       ],
     },
   ],
@@ -100,72 +97,59 @@ export default {
 };
 `;
 
-const TEMPLATE_BUTTON = `import { forwardRef } from "react";
-import { Pressable, Text, type PressableProps } from "react-native";
+const TEMPLATE_BUTTON = `import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-export interface ButtonProps extends Omit<PressableProps, "children"> {
-  children: React.ReactNode;
-  variant?: "default" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg";
-  className?: string;
-}
-
-export const Button = forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
-  ({ children, variant = "default", size = "md", className, ...props }, ref) => {
-    const variantStyles = {
-      default: "bg-primary active:bg-primary/90",
-      outline: "border border-input bg-transparent active:bg-accent",
-      ghost: "bg-transparent active:bg-accent",
-    };
-
-    const sizeStyles = {
-      sm: "h-9 px-3",
-      md: "h-10 px-4",
-      lg: "h-11 px-6",
-    };
-
-    const textVariantStyles = {
-      default: "text-primary-foreground",
-      outline: "text-foreground",
-      ghost: "text-foreground",
-    };
-
-    return (
-      <Pressable
-        ref={ref}
-        className={cn(
-          "flex-row items-center justify-center rounded-md",
-          variantStyles[variant],
-          sizeStyles[size],
-          className
-        )}
-        {...props}
-      >
-        {typeof children === "string" ? (
-          <Text className={cn("font-medium", textVariantStyles[variant])}>
-            {children}
-          </Text>
-        ) : (
-          children
-        )}
-      </Pressable>
-    );
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
   }
 );
 
-Button.displayName = "Button";
-`;
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {}
 
-const TEMPLATE_BUTTON_INDEX = `export { Button, type ButtonProps } from "./button";
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => {
+    return (
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Button.displayName = "Button";
+
+export { Button, buttonVariants };
 `;
 
 const TEMPLATE_UTILS = `import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-/**
- * 合并 Tailwind CSS 类名
- */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -193,9 +177,6 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
 }
 `;
 
-const TEMPLATE_USE_DEBOUNCE_INDEX = `export { useDebounce } from "./use-debounce";
-`;
-
 const TEMPLATE_GITIGNORE = `# Dependencies
 node_modules/
 
@@ -220,7 +201,7 @@ Thumbs.db
 
 const TEMPLATE_README = (name: string) => `# ${name}
 
-Aster 组件库项目。
+AsterHub 组件库项目。
 
 ## 快速开始
 
@@ -241,25 +222,24 @@ npm run publish:registry
 \`\`\`
 src/
 ├── components/           # UI 组件
-│   └── nativewind/
-│       └── button/
+│   └── tailwind/
+│       └── button.tsx
 ├── hooks/                # Hooks
-│   └── use-debounce/
-├── lib/                  # 工具函数
-│   └── utils.ts
-└── configs/              # 配置资源
+│   └── use-debounce.ts
+└── lib/                  # 工具函数
+    └── utils.ts
 \`\`\`
 
 ## 添加新组件
 
-1. 在 \`src/components/nativewind/\` 下创建组件目录
+1. 在 \`src/components/tailwind/\` 下创建组件文件
 2. 在 \`registry.config.ts\` 中注册组件
 3. 运行 \`npm run build\` 构建
 4. 运行 \`npm run publish:registry\` 发布
 
 ## 文档
 
-- [Aster 文档](https://asterhub.dev/docs)
+- [AsterHub 文档](https://asterhub.dev/docs)
 - [创建组件指南](https://asterhub.dev/docs/registry)
 `;
 
@@ -276,7 +256,7 @@ export async function registryCreate(name?: string): Promise<void> {
       type: "text",
       name: "name",
       message: "项目名称:",
-      initial: "my-aster-registry",
+      initial: "my-asterhub-registry",
       validate: (value) => {
         if (!value) return "请输入项目名称";
         if (!/^[a-z0-9-]+$/.test(value)) return "只能包含小写字母、数字、连字符";
@@ -334,10 +314,9 @@ export async function registryCreate(name?: string): Promise<void> {
 
   try {
     // 创建目录结构
-    await fs.ensureDir(fs.join(targetDir, "src/components/nativewind/button"));
-    await fs.ensureDir(fs.join(targetDir, "src/hooks/use-debounce"));
+    await fs.ensureDir(fs.join(targetDir, "src/components/tailwind"));
+    await fs.ensureDir(fs.join(targetDir, "src/hooks"));
     await fs.ensureDir(fs.join(targetDir, "src/lib"));
-    await fs.ensureDir(fs.join(targetDir, "src/configs"));
 
     // 写入配置文件
     await fs.writeJson(fs.join(targetDir, "package.json"), TEMPLATE_PACKAGE_JSON(name));
@@ -348,12 +327,8 @@ export async function registryCreate(name?: string): Promise<void> {
 
     // 写入示例组件
     await fs.writeText(
-      fs.join(targetDir, "src/components/nativewind/button/button.tsx"),
+      fs.join(targetDir, "src/components/tailwind/button.tsx"),
       TEMPLATE_BUTTON
-    );
-    await fs.writeText(
-      fs.join(targetDir, "src/components/nativewind/button/index.ts"),
-      TEMPLATE_BUTTON_INDEX
     );
 
     // 写入工具函数
@@ -361,12 +336,8 @@ export async function registryCreate(name?: string): Promise<void> {
 
     // 写入 Hook
     await fs.writeText(
-      fs.join(targetDir, "src/hooks/use-debounce/use-debounce.ts"),
+      fs.join(targetDir, "src/hooks/use-debounce.ts"),
       TEMPLATE_USE_DEBOUNCE
-    );
-    await fs.writeText(
-      fs.join(targetDir, "src/hooks/use-debounce/index.ts"),
-      TEMPLATE_USE_DEBOUNCE_INDEX
     );
 
     logger.success("项目创建成功!");

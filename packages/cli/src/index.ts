@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Aster CLI - 跨框架组件库管理工具
+ * AsterHub CLI - 组件库管理工具
  */
 import { Command } from "commander";
 import {
-  // create,  // TODO: v2 - 创建项目功能
+  create,
   init,
   add,
   remove,
@@ -32,25 +32,22 @@ import {
 const program = new Command();
 
 program
-  .name("aster")
-  .description("跨框架组件库 CLI - 安装、管理和发布 UI 组件、Hooks、工具函数")
+  .name("asterhub")
+  .description("组件库 CLI - 安装、管理和发布 UI 组件、Hooks、工具函数")
   .version("0.1.0");
 
 // ============ 项目命令 ============
 
-// TODO: v2 - 创建项目功能
-// program
-//   .command("create")
-//   .description("创建新项目")
-//   .argument("[name]", "项目名称")
-//   .option("-f, --framework <framework>", "框架 (expo/nextjs)")
-//   .option("-s, --starter <starter>", "模板 (minimal/standard/full)")
-//   .option("-y, --yes", "使用默认配置")
-//   .action(create);
+program
+  .command("create")
+  .description("创建新项目")
+  .argument("[name]", "项目名称")
+  .option("-y, --yes", "使用默认配置")
+  .action(create);
 
 program
   .command("init")
-  .description("初始化 Aster 配置")
+  .description("初始化 AsterHub 配置")
   .action(init);
 
 // ============ 组件命令 ============

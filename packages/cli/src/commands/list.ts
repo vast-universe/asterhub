@@ -47,8 +47,8 @@ export async function list(options: ListOptions = {}): Promise<void> {
 
   // 获取配置
   const config = await readConfig(cwd);
-  const framework = (config?.framework || "expo") as Framework;
-  const style = (config?.style || "nativewind") as Style;
+  const framework = (config?.framework || "next") as Framework;
+  const style = (config?.style || "tailwind") as Style;
 
   // 确定类型
   let type: ResourceType | undefined;

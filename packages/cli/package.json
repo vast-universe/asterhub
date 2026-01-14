@@ -1,7 +1,7 @@
 {
   "name": "asterhub",
   "version": "0.1.0",
-  "description": "跨框架组件库 CLI - 安装、管理和发布 UI 组件、Hooks、工具函数",
+  "description": "组件库 CLI - 安装、管理和发布 UI 组件、Hooks、工具函数",
   "type": "module",
   "bin": {
     "asterhub": "./dist/index.js"
@@ -39,14 +39,14 @@
     "node": ">=18.0.0"
   },
   "keywords": [
-    "expo",
-    "react-native",
+    "nextjs",
+    "react",
     "components",
     "hooks",
     "ui",
     "cli",
     "registry",
-    "nativewind"
+    "tailwind"
   ],
   "author": "nicepkg",
   "homepage": "https://asterhub.dev",

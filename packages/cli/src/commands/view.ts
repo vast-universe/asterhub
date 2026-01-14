@@ -66,8 +66,8 @@ export async function view(item: string, options: ViewOptions = {}): Promise<voi
 
   // 读取配置获取 framework 和 style
   const config = await readConfig(cwd);
-  const framework = (config?.framework || "expo") as Framework;
-  const style = (config?.style || "nativewind") as Style;
+  const framework = (config?.framework || "next") as Framework;
+  const style = (config?.style || "tailwind") as Style;
 
   const typePrefix = ref.type === "ui" ? "" : `${ref.type}:`;
   const displayName = `@${ref.namespace}/${typePrefix}${ref.name}`;

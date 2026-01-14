@@ -6,7 +6,7 @@ import { logger, fs, readConfig, hasConfig, getInstalledResources } from "../lib
 export async function info(): Promise<void> {
   const cwd = process.cwd();
 
-  logger.header("📋", "Aster 配置信息");
+  logger.header("📋", "AsterHub 配置信息");
 
   // 检查配置文件
   if (!(await hasConfig(cwd))) {

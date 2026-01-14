@@ -3,7 +3,8 @@
  */
 
 // 项目命令
-// export { create } from "./create";  // TODO: v2
+// export { create } from "./create";
+export { create } from "./create";
 export { init } from "./init";
 
 // 组件命令

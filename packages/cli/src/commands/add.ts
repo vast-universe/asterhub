@@ -285,7 +285,7 @@ export async function add(items: string[], options: AddOptions = {}): Promise<vo
     if (uniqueDeps.length > 0 || uniqueDevDeps.length > 0) {
       logger.header("📦", "需要安装以下依赖:");
       if (uniqueDeps.length > 0) {
-        logger.log(`  npx expo install ${uniqueDeps.join(" ")}`);
+        logger.log(`  npm install ${uniqueDeps.join(" ")}`);
       }
       if (uniqueDevDeps.length > 0) {
         logger.log(`  npm install -D ${uniqueDevDeps.join(" ")}`);

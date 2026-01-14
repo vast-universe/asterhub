@@ -27,7 +27,7 @@ export async function search(query?: string, options: SearchOptions = {}): Promi
   }
 
   const config = await readConfig(cwd);
-  const framework = (config?.framework || "expo") as Framework;
+  const framework = (config?.framework || "next") as Framework;
 
   spinner.start(`搜索 "${query}"...`);
 

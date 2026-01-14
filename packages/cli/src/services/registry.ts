@@ -18,7 +18,7 @@ import type {
  */
 export async function fetchResource(
   ref: ResourceRef,
-  framework: Framework = "expo",
+  framework: Framework = "next",
   style?: Style
 ): Promise<ResourceContent> {
   const typePrefix = ref.type === "ui" ? "" : `${ref.type}:`;
